@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#f08cae">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Heo đất">
+<title>Heo đất – Sổ thu chi</title>
+<style>
+:root{
+  --bg:#f4f1f8; --panel:#ffffff; --ink:#2b2140; --muted:#7c7290; --line:#e3dcef;
+  --pig:#f08cae; --pig-d:#d9628c; --thu:#1f8a5b; --chi:#c0392b;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#181322; --panel:#241d33; --ink:#f0eafc; --muted:#a79bc0; --line:#3a3150;
+    --pig:#f08cae; --pig-d:#f4a3c0; --thu:#4fcf97; --chi:#ff7b6b;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#181322; --panel:#241d33; --ink:#f0eafc; --muted:#a79bc0; --line:#3a3150;
+  --pig:#f08cae; --pig-d:#f4a3c0; --thu:#4fcf97; --chi:#ff7b6b;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:4px 0 12px}
+h2{font-size:1rem;margin:20px 0 8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+
+/* Số dư */
+.balance{display:flex;align-items:center;gap:14px}
+.pig{font-size:3.2rem;line-height:1}
+.balance small{color:var(--muted)}
+.balance b{display:block;font-size:1.9rem}
+.sum{display:flex;gap:10px;margin-top:12px}
+.sum div{flex:1;border-radius:12px;padding:8px 10px;font-size:.85rem;background:var(--bg)}
+.sum b{display:block;font-size:1.05rem}
+.thu{color:var(--thu)} .chi{color:var(--chi)}
+
+/* Mục tiêu */
+.bar{height:16px;background:var(--bg);border:1px solid var(--line);border-radius:999px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--pig),var(--pig-d));transition:width .5s}
+.goalrow{display:flex;justify-content:space-between;font-size:.9rem;color:var(--muted)}
+.goalset{display:flex;gap:8px;margin-top:10px}
+
+/* Form */
+input,select{font:inherit;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);width:100%}
+.form{display:grid;gap:8px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg button{padding:11px;border-radius:10px;border:2px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-weight:700;cursor:pointer}
+.seg button.sel[data-t="thu"]{border-color:var(--thu);color:var(--thu)}
+.seg button.sel[data-t="chi"]{border-color:var(--chi);color:var(--chi)}
+.add,.small{border:0;border-radius:12px;background:var(--pig-d);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.add{padding:13px;font-size:1.05rem}
+.small{padding:0 16px;white-space:nowrap}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--pig-d);outline-offset:2px}
+
+/* Danh sách */
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+li:last-child{border-bottom:0}
+li .info{flex:1;min-width:0}
+li .info span{display:block;font-size:.78rem;color:var(--muted)}
+li .amt{font-weight:700;white-space:nowrap}
+li .del{border:0;background:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:6px}
+.empty{color:var(--muted);text-align:center;padding:14px 0;font-size:.9rem}
+.wipe{margin-top:16px;width:100%;padding:12px;background:none;border:1px solid var(--chi);border-radius:12px;color:var(--chi);font:inherit;font-weight:700;cursor:pointer}
+.lbl{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Heo đất 🐷</h1>
+
+  <section class="card">
+    <div class="balance">
+      <div class="pig" id="pig">🐷</div>
+      <div><small>Số dư hiện có</small><b id="bal">0 đ</b></div>
+    </div>
+    <div class="sum">
+      <div>Tổng thu<b class="thu" id="sumThu">0 đ</b></div>
+      <div>Tổng chi<b class="chi" id="sumChi">0 đ</b></div>
+    </div>
+  </section>
+
+  <h2>Bắt đầu theo dõi</h2>
+  <section class="card form">
+    <label class="lbl">Bắt đầu từ tháng<input id="startIn" type="month"></label>
+    <div class="goalset">
+      <input id="openIn" type="number" inputmode="numeric" placeholder="Số dư đã có (đ)">
+      <button class="small" id="openBtn">Lưu số dư</button>
+    </div>
+    <div class="goalrow"><span id="openInfo"></span></div>
+  </section>
+
+  <h2>Mục tiêu tiết kiệm</h2>
+  <section class="card">
+    <div class="goalrow"><span id="goalName">Chưa đặt mục tiêu</span><span id="goalPct">0%</span></div>
+    <div class="bar"><i id="fill"></i></div>
+    <div class="goalrow"><span id="goalNow"></span><span id="goalMax"></span></div>
+    <div class="goalset">
+      <input id="goalNameIn" placeholder="Tên (vd: mua tai nghe)">
+      <input id="goalAmtIn" type="number" inputmode="numeric" placeholder="Số tiền">
+      <button class="small" id="goalBtn">Đặt</button>
+    </div>
+  </section>
+
+  <h2>Thêm giao dịch</h2>
+  <section class="card form">
+    <div class="seg">
+      <button type="button" data-t="chi" class="sel">Chi tiêu</button>
+      <button type="button" data-t="thu">Bỏ heo / thu</button>
+    </div>
+    <input id="dateIn" type="date" aria-label="Ngày giao dịch">
+    <input id="amount" type="number" inputmode="numeric" placeholder="Số tiền (đ)">
+    <input id="note" placeholder="Ghi chú (vd: trà sữa)">
+    <button class="add" id="addBtn">Thêm</button>
+  </section>
+
+  <h2>Lịch sử theo tháng</h2>
+  <select id="monthSel" aria-label="Chọn tháng"></select>
+  <div class="goalrow" style="margin:8px 0"><span id="monthInfo"></span></div>
+  <section class="card"><ul id="list"></ul></section>
+  <button class="wipe" id="wipe">Xoá toàn bộ dữ liệu</button>
+</main>
+
+<script>
+// ===== 1. Dữ liệu =====
+// Toàn bộ app xoay quanh một object "data". Mỗi lần đổi data: lưu lại rồi vẽ lại giao diện.
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const fmtDate = s => s.split("-").reverse().join("/");
+// Dữ liệu trống: items = giao dịch, opening = số dư đã có, start = tháng bắt đầu (YYYY-MM)
+const blank = () => ({ items: [], opening: 0, start: ymd(new Date()).slice(0, 7), goal: { name: "", amount: 0 } });
+let data = blank();
+let viewMonth = ""; // tháng đang xem
+let type = "chi"; // loại giao dịch đang chọn
+
+// localStorage lưu trên chính trình duyệt của bạn. Bọc try/catch phòng khi bị chặn.
+function load(){
+  try{
+    const raw = localStorage.getItem("heodat2");
+    if(raw) data = Object.assign(blank(), JSON.parse(raw));
+  }catch(e){ /* không đọc được thì dùng dữ liệu rỗng */ }
+}
+function save(){
+  try{ localStorage.setItem("heodat2", JSON.stringify(data)); }catch(e){}
+}
+
+// ===== 2. Hàm tiện ích =====
+const $ = id => document.getElementById(id);
+const money = n => n.toLocaleString("vi-VN") + " đ";
+// Chống chèn mã HTML lạ vào ghi chú (an toàn khi dùng innerHTML)
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// ===== 3. Vẽ giao diện từ dữ liệu =====
+function render(){
+  const thu = data.items.filter(i => i.type === "thu").reduce((s,i) => s + i.amount, 0);
+  const chi = data.items.filter(i => i.type === "chi").reduce((s,i) => s + i.amount, 0);
+  const bal = (data.opening || 0) + thu - chi; // số dư = số dư đã có + thu − chi
+
+  $("bal").textContent = money(bal);
+  $("sumThu").textContent = money(thu);
+  $("sumChi").textContent = money(chi);
+  $("pig").textContent = bal < 0 ? "😢" : "🐷";
+
+  // Mục tiêu: phần trăm = số dư / mục tiêu (giới hạn 0–100)
+  const g = data.goal;
+  if(g.amount > 0){
+    const pct = Math.max(0, Math.min(100, Math.round(bal / g.amount * 100)));
+    $("goalName").textContent = g.name || "Mục tiêu";
+    $("goalPct").textContent = pct + "%";
+    $("fill").style.width = pct + "%";
+    $("goalNow").textContent = money(Math.max(0, bal));
+    $("goalMax").textContent = money(g.amount);
+  }else{
+    $("goalName").textContent = "Chưa đặt mục tiêu";
+    $("goalPct").textContent = "0%";
+    $("fill").style.width = "0%";
+    $("goalNow").textContent = ""; $("goalMax").textContent = "";
+  }
+
+  // Danh sách: mới nhất ở trên
+  drawMonth();
+  const shown = data.items.filter(i => i.date.slice(0, 7) === viewMonth)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+  const mt = shown.filter(i => i.type === "thu").reduce((s, i) => s + i.amount, 0);
+  const mc = shown.filter(i => i.type === "chi").reduce((s, i) => s + i.amount, 0);
+  $("monthInfo").textContent = "Thu " + money(mt) + " / Chi " + money(mc);
+  $("openInfo").textContent = data.opening > 0 ? "Số dư đã có: " + money(data.opening) : "Chưa nhập số dư đã có";
+  $("startIn").value = data.start;
+  $("list").innerHTML = shown.length
+    ? shown.map(i =>
+        '<li><div class="info">' + esc(i.note || (i.type === "thu" ? "Bỏ heo" : "Chi tiêu")) +
+        '<span>' + fmtDate(i.date) + '</span></div>' +
+        '<div class="amt ' + i.type + '">' + (i.type === "thu" ? "+" : "−") + money(i.amount) + '</div>' +
+        '<button class="del" data-id="' + i.id + '" aria-label="Xoá">✕</button></li>').join("")
+    : '<div class="empty">Chưa có giao dịch nào. Thêm khoản đầu tiên ở trên.</div>';
+}
+
+// Danh sách các tháng từ tháng bắt đầu đến tháng hiện tại
+function monthList(){
+  let first = data.start, last = ymd(new Date()).slice(0, 7);
+  if(data.start > last) last = data.start;
+  data.items.forEach(i => { const m = i.date.slice(0, 7); if(m < first) first = m; if(m > last) last = m; });
+  const out = []; let y = +first.slice(0, 4), m = +first.slice(5);
+  const ly = +last.slice(0, 4), lm = +last.slice(5);
+  while(y < ly || (y === ly && m <= lm)){ out.push(y + "-" + pad(m)); if(++m > 12){ m = 1; y++; } }
+  return out;
+}
+function drawMonth(){
+  const ms = monthList(), cur = ymd(new Date()).slice(0, 7);
+  if(!ms.includes(viewMonth)) viewMonth = ms.includes(cur) ? cur : ms[ms.length - 1];
+  $("monthSel").innerHTML = ms.map(m => '<option value="' + m + '"' + (m === viewMonth ? ' selected' : '') +
+    '>Tháng ' + m.slice(5) + '/' + m.slice(0, 4) + '</option>').join("");
+}
+
+// ===== 4. Xử lý sự kiện =====
+document.querySelectorAll(".seg button").forEach(b =>
+  b.addEventListener("click", () => {
+    type = b.dataset.t;
+    document.querySelectorAll(".seg button").forEach(x => x.classList.toggle("sel", x === b));
+  }));
+
+$("addBtn").addEventListener("click", () => {
+  const amount = Math.floor(+$("amount").value);
+  if(!(amount > 0)){ $("amount").focus(); return; } // bắt buộc nhập số > 0
+  const date = $("dateIn").value || ymd(new Date());
+  data.items.push({ id: Date.now(), type, amount, note: $("note").value.trim(), date });
+  viewMonth = date.slice(0, 7);
+  $("amount").value = ""; $("note").value = "";
+  save(); render();
+});
+
+// Một listener cho cả danh sách (event delegation): bấm ✕ nào thì xoá dòng đó
+$("list").addEventListener("click", e => {
+  const btn = e.target.closest(".del");
+  if(!btn) return;
+  data.items = data.items.filter(i => i.id !== +btn.dataset.id);
+  save(); render();
+});
+
+$("goalBtn").addEventListener("click", () => {
+  const amount = Math.floor(+$("goalAmtIn").value);
+  if(!(amount > 0)){ $("goalAmtIn").focus(); return; }
+  data.goal = { name: $("goalNameIn").value.trim(), amount };
+  $("goalNameIn").value = ""; $("goalAmtIn").value = "";
+  save(); render();
+});
+
+$("wipe").addEventListener("click", () => {
+  if(confirm("Xoá toàn bộ giao dịch và mục tiêu?")){
+    data = blank(); viewMonth = "";
+    save(); render();
+  }
+});
+
+// ===== 5. Khởi động =====
+$("monthSel").addEventListener("change", e => { viewMonth = e.target.value; render(); });
+$("startIn").addEventListener("change", e => {
+  if(e.target.value){ data.start = e.target.value; viewMonth = ""; save(); render(); }
+});
+$("openBtn").addEventListener("click", () => {
+  const v = $("openIn").value;
+  if(v === "" || +v < 0){ $("openIn").focus(); return; }
+  data.opening = Math.floor(+v); $("openIn").value = "";
+  save(); render();
+});
+
+load(); $("dateIn").value = ymd(new Date()); render();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
